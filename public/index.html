@@ -309,15 +309,28 @@ const socket = io();
       });
 
       // Brisanje selektovanog teksta
-      clearBtn.addEventListener("click", function () {
-        if (selectedTextElement) {
-          selectedTextElement.remove();
-          textElements = textElements.filter(element => element !== selectedTextElement); // Ukloni iz niza
-          selectedTextElement = null;
-          updateTextList(); // Ažuriraj listu
-          textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
-        }
-      });
+    clearBtn.addEventListener("click", function () {
+  if (selectedTextElement) {
+    // Dohvatite index selektovanog teksta
+    const index = textElements.indexOf(selectedTextElement);
+    if (index !== -1) {
+      // Uklonite tekst sa ekrana
+      selectedTextElement.remove();
+
+      // Uklonite tekst iz niza na klijentu
+      textElements = textElements.filter(element => element !== selectedTextElement);
+      selectedTextElement = null;
+
+      // Ažurirajte listu i broj tekstova na ekranu
+      updateTextList();
+      textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
+
+      // Poslati obaveštenje serveru da obriše ovaj tekst
+      socket.emit('delete-text', index); // Emitujte index teksta koji treba obrisati
+    }
+  }
+});
+
 
       // Prikazivanje popup-a sa listom
       showListBtn.addEventListener("click", function () {
@@ -337,7 +350,28 @@ const socket = io();
         popupOverlay.style.display = "none";
       });
     });
+// Kada klijent primi aktuelne tekstove
+socket.on('current-texts', (texts) => {
+  texts.forEach((data) => {
+    createTextElement(data); // Funkcija koja pravi element za tekst
+  });
+});
+
+// Kada klijent primi novi tekst
 socket.on('new-text', (data) => {
+  createTextElement(data); // Funkcija koja pravi element za tekst
+});
+
+// Kada klijent primi zahtev za brisanje teksta
+socket.on('delete-text', (index) => {
+  const textElement = document.getElementById(`text-${index}`);
+  if (textElement) {
+    textElement.remove(); // Ukloni element sa ekrana
+  }
+});
+
+// Funkcija za kreiranje i dodavanje novog teksta na ekran
+function createTextElement(data) {
   const textElement = document.createElement("div");
   textElement.classList.add("text-display");
   textElement.innerText = data.text;
@@ -345,13 +379,12 @@ socket.on('new-text', (data) => {
   textElement.style.fontFamily = data.font;
   textElement.style.fontSize = data.fontSize;
   textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
+  textElement.id = `text-${data.index}`; // Dodaj id za lakše upravljanje kasnije
 
-  // Dodaj element na ekran (sa servera)
+  // Dodaj element na ekran
   textContainer.appendChild(textElement);
-});
+}
 
-
-    
   </script>
 </body>
 </html>
