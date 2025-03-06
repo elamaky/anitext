@@ -314,8 +314,7 @@ const socket = io();
           selectedTextElement.remove();
           textElements = textElements.filter(element => element !== selectedTextElement); // Ukloni iz niza
           selectedTextElement = null;
-           socket.emit('delete-text', selectedTextElement);
-          updateTextList(); // Ažuriraj listu
+           updateTextList(); // Ažuriraj listu
           textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
         }
       });
