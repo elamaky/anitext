@@ -1,47 +1,32 @@
 const express = require('express');
-const WebSocket = require('ws');
+const http = require('http');
+const socketIo = require('socket.io'); // Uvezi socket.io
+
 const app = express();
-const wss = new WebSocket.Server({ noServer: true });
+const server = http.createServer(app); // Koristi HTTP server za express
+const io = socketIo(server); // Poveži express sa socket.io
 
 // Statički fajlovi (ako ih imate u 'public' folderu)
 app.use(express.static('public')); // Public folder za vaše statičke fajlove
 
 // Kada se nova veza uspostavi
-wss.on('connection', function connection(ws) {
-  console.log("New WebSocket connection established."); // Log kada se klijent poveže
+io.on('connection', (socket) => {
+  console.log('A user connected'); // Ispisuj u konzolu kad se neko poveže
 
-  ws.on('message', function incoming(message) {
-    console.log("Received message from client:", message); // Log kada se primi poruka od klijenta
-
-    // Prosljeđivanje poruke svim povezanim klijentima
-    wss.clients.forEach(function each(client) {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        console.log("Sending message to client."); // Log pre nego što šaljemo poruku klijentima
-        client.send(message);
-      }
-    });
+  // Kada server primi poruku od klijenta
+  socket.on('new-text', (data) => {
+    // Prosledi poruku svim povezanim klijentima
+    io.emit('new-text', data); // Emituj podatke svim korisnicima
   });
 
-  ws.on('close', function() {
-    console.log("WebSocket connection closed."); // Log kada se konekcija zatvori
-  });
-
-  ws.on('error', function(err) {
-    console.error("WebSocket error:", err); // Log za greške u WebSocket konekciji
+  // Kada korisnik odspoji
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
   });
 });
 
 // Server pokrećemo sa portom koji dodeljuje Render
 const PORT = process.env.PORT || 3000; // Ako nije dodeljen PORT, koristi 3000
-app.server = app.listen(PORT, function() {
-  console.log(`Server started on http://localhost:${PORT}`); // Log kada server počne da radi
-});
-
-// Postavljanje WebSocket konekcije
-app.server.on('upgrade', function(request, socket, head) {
-  console.log("Upgrade request received."); // Log kada se dobije WebSocket upgrade zahtev
-  wss.handleUpgrade(request, socket, head, function done(ws) {
-    console.log("WebSocket connection upgraded."); // Log nakon što je WebSocket upgrade uspešan
-    wss.emit('connection', ws, request);
-  });
+server.listen(PORT, () => {
+  console.log(`Server started on http://localhost:${PORT}`);
 });
