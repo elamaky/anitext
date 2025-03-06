@@ -308,28 +308,17 @@ const socket = io();
         textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
       });
 
-      // Brisanje selektovanog teksta
-    clearBtn.addEventListener("click", function () {
-  if (selectedTextElement) {
-    // Dohvatite index selektovanog teksta
-    const index = textElements.indexOf(selectedTextElement);
-    if (index !== -1) {
-      // Uklonite tekst sa ekrana
-      selectedTextElement.remove();
-
-      // Uklonite tekst iz niza na klijentu
-      textElements = textElements.filter(element => element !== selectedTextElement);
-      selectedTextElement = null;
-
-      // Ažurirajte listu i broj tekstova na ekranu
-      updateTextList();
-      textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
-
-      // Poslati obaveštenje serveru da obriše ovaj tekst
-      socket.emit('delete-text', index); // Emitujte index teksta koji treba obrisati
-    }
-  }
-});
+   // Brisanje selektovanog teksta
+      clearBtn.addEventListener("click", function () {
+        if (selectedTextElement) {
+          selectedTextElement.remove();
+          textElements = textElements.filter(element => element !== selectedTextElement); // Ukloni iz niza
+          selectedTextElement = null;
+           socket.emit('delete-text', selectedTextElement);
+          updateTextList(); // Ažuriraj listu
+          textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
+        }
+      });
 
 
       // Prikazivanje popup-a sa listom
