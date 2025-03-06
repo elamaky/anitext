@@ -199,6 +199,9 @@
   </div>
 
   <script>
+const socket = new WebSocket('wss://' + window.location.hostname); // Konektujte se na WebSocket server sa Render URL-om
+
+    
     document.addEventListener("DOMContentLoaded", function () {
       const textInput = document.getElementById("textInput");
       const textColorInput = document.getElementById("textColor");
@@ -257,6 +260,7 @@
         textElement.style.fontFamily = font;
         textElement.style.fontSize = fontSize;
         textElement.style.animation = `${animation} ${speed}s ease infinite`; // Animacija u loop-u
+         socket.send(JSON.stringify({ text, color, font, animation, speed, fontSize }));
 
         // Dodavanje drag funkcionalnosti
         let isDragging = false;
@@ -331,6 +335,20 @@
         popupOverlay.style.display = "none";
       });
     });
+
+socket.onmessage = function(event) {
+  const data = JSON.parse(event.data);
+  const textElement = document.createElement("div");
+  textElement.classList.add("text-display");
+  textElement.innerText = data.text;
+  textElement.style.color = data.color;
+  textElement.style.fontFamily = data.font;
+  textElement.style.fontSize = data.fontSize;
+  textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
+  
+  textContainer.appendChild(textElement);
+};
+    
   </script>
 </body>
 </html>
