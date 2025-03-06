@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Text Animation Generator</title>
-<script src="/socket.io/socket.io.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
 
   <style>
     body {
@@ -201,7 +201,7 @@
   </div>
 
   <script>
-const socket = io(); 
+const socket = io();
 
     
     document.addEventListener("DOMContentLoaded", function () {
@@ -253,6 +253,7 @@ const socket = io();
         const animation = animationSelect.value;
         const speed = 100 - speedRange.value; // Brzina u opsegu od 1 do 100 (niži broj = brža animacija)
         const fontSize = fontSizeRange.value + "px"; // Veličina fonta
+         socket.emit('new-text', { text, color, font, animation, speed, fontSize });
 
         // Kreiraj novi tekst
         const textElement = document.createElement("div");
@@ -262,27 +263,6 @@ const socket = io();
         textElement.style.fontFamily = font;
         textElement.style.fontSize = fontSize;
         textElement.style.animation = `${animation} ${speed}s ease infinite`; // Animacija u loop-u
-
-         socket.emit('new-text', { text, color, font, animation, speed, fontSize });
-
-    // Dodaj element na ekran
-    textContainer.appendChild(textElement);
-  });
-
-  // Prijem novog teksta sa servera (ako je neki korisnik generisao tekst)
-  socket.on('new-text', (data) => {
-    const textElement = document.createElement("div");
-    textElement.classList.add("text-display");
-    textElement.innerText = data.text;
-    textElement.style.color = data.color;
-    textElement.style.fontFamily = data.font;
-    textElement.style.fontSize = data.fontSize;
-    textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
-
-    // Dodaj element na ekran
-    textContainer.appendChild(textElement);
-  });
-
 
         // Dodavanje drag funkcionalnosti
         let isDragging = false;
@@ -357,6 +337,18 @@ const socket = io();
         popupOverlay.style.display = "none";
       });
     });
+socket.on('new-text', (data) => {
+  const textElement = document.createElement("div");
+  textElement.classList.add("text-display");
+  textElement.innerText = data.text;
+  textElement.style.color = data.color;
+  textElement.style.fontFamily = data.font;
+  textElement.style.fontSize = data.fontSize;
+  textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
+
+  // Dodaj element na ekran (sa servera)
+  textContainer.appendChild(textElement);
+});
 
 
     
