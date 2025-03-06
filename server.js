@@ -6,6 +6,8 @@ const app = express();
 const server = http.createServer(app); // Koristi HTTP server za express
 const io = socketIo(server); // Poveži express sa socket.io
 
+let activeTexts = []; // Niz za čuvanje aktivnih tekstova
+
 // Statički fajlovi (ako ih imate u 'public' folderu)
 app.use(express.static('public')); // Public folder za vaše statičke fajlove
 
@@ -13,10 +15,20 @@ app.use(express.static('public')); // Public folder za vaše statičke fajlove
 io.on('connection', (socket) => {
   console.log('A user connected'); // Ispisuj u konzolu kad se neko poveže
 
-  // Kada server primi poruku od klijenta
+  // Pošaljite samo aktuelne tekstove novom korisniku
+  socket.emit('current-texts', activeTexts);
+
+  // Kada server primi poruku od klijenta (novi tekst)
   socket.on('new-text', (data) => {
-    // Prosledi poruku svim povezanim klijentima
-    io.emit('new-text', data); // Emituj podatke svim korisnicima
+    activeTexts.push(data); // Dodajte novi tekst u niz
+    io.emit('new-text', data); // Emitujte novi tekst svim povezanim klijentima
+  });
+
+  // Kada korisnik pošalje zahtev za brisanje teksta
+  socket.on('delete-text', (index) => {
+    // Uklonite tekst iz niza
+    activeTexts.splice(index, 1); 
+    io.emit('delete-text', index); // Emitujte obaveštenje svim klijentima da obrišu tekst
   });
 
   // Kada korisnik odspoji
