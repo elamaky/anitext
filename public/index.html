@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Text Animation Generator</title>
-  <script src="/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 
   <style>
     body {
@@ -201,7 +201,7 @@
   </div>
 
   <script>
-const socket = new WebSocket('wss://' + window.location.hostname); // Konektujte se na WebSocket server sa Render URL-om
+const socket = io(); 
 
     
     document.addEventListener("DOMContentLoaded", function () {
@@ -262,7 +262,27 @@ const socket = new WebSocket('wss://' + window.location.hostname); // Konektujte
         textElement.style.fontFamily = font;
         textElement.style.fontSize = fontSize;
         textElement.style.animation = `${animation} ${speed}s ease infinite`; // Animacija u loop-u
-         socket.send(JSON.stringify({ text, color, font, animation, speed, fontSize }));
+
+         socket.emit('new-text', { text, color, font, animation, speed, fontSize });
+
+    // Dodaj element na ekran
+    textContainer.appendChild(textElement);
+  });
+
+  // Prijem novog teksta sa servera (ako je neki korisnik generisao tekst)
+  socket.on('new-text', (data) => {
+    const textElement = document.createElement("div");
+    textElement.classList.add("text-display");
+    textElement.innerText = data.text;
+    textElement.style.color = data.color;
+    textElement.style.fontFamily = data.font;
+    textElement.style.fontSize = data.fontSize;
+    textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
+
+    // Dodaj element na ekran
+    textContainer.appendChild(textElement);
+  });
+});
 
         // Dodavanje drag funkcionalnosti
         let isDragging = false;
@@ -338,18 +358,7 @@ const socket = new WebSocket('wss://' + window.location.hostname); // Konektujte
       });
     });
 
-socket.onmessage = function(event) {
-  const data = JSON.parse(event.data);
-  const textElement = document.createElement("div");
-  textElement.classList.add("text-display");
-  textElement.innerText = data.text;
-  textElement.style.color = data.color;
-  textElement.style.fontFamily = data.font;
-  textElement.style.fontSize = data.fontSize;
-  textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
-  
-  textContainer.appendChild(textElement);
-};
+
     
   </script>
 </body>
