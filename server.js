@@ -40,7 +40,7 @@ io.on('connection', (socket) => {
         };
         textElements.push(newTextElement);
 
-        // Emitujemo sve povezane klijente sa novim tekstom
+        // Emitujemo svim povezanim klijentima sa novim tekstom
         socket.broadcast.emit('textElement', newTextElement); // Emitujemo svim klijentima osim trenutnog
     });
 
