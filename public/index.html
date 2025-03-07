@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Text Animation Generator</title>
-  <script src="/socket.io/socket.io.js"></script>
-
   <style>
     body {
       background-color: #000;
@@ -201,7 +199,17 @@
   </div>
 
   <script>
-const socket = io();
+  const socket = io();
+
+socket.on("initTexts", (texts) => {
+    texts.forEach(addTextToDOM);
+});
+
+// Kada se doda novi tekst
+socket.on("updateTexts", (texts) => {
+    document.getElementById("textContainer").innerHTML = ""; // Očisti ekran
+    texts.forEach(addTextToDOM);
+});
 
     
     document.addEventListener("DOMContentLoaded", function () {
@@ -245,25 +253,37 @@ const socket = io();
         });
       }
 
-      // Generiši novi tekst
-      generateBtn.addEventListener("click", function () {
-        const text = textInput.value;
-        const color = textColorInput.value;
-        const font = fontSelect.value;
-        const animation = animationSelect.value;
-        const speed = 100 - speedRange.value; // Brzina u opsegu od 1 do 100 (niži broj = brža animacija)
-        const fontSize = fontSizeRange.value + "px"; // Veličina fonta
-         socket.emit('new-text', { text, color, font, animation, speed, fontSize });
+   generateBtn.addEventListener("click", function () {
+    const text = textInput.value;
+    const color = textColorInput.value;
+    const font = fontSelect.value;
+    const animation = animationSelect.value;
+    const speed = 100 - speedRange.value; // Brzina u opsegu od 1 do 100
+    const fontSize = fontSizeRange.value + "px"; // Veličina fonta
 
-        // Kreiraj novi tekst
-        const textElement = document.createElement("div");
-        textElement.classList.add("text-display");
-        textElement.innerText = text;
-        textElement.style.color = color;
-        textElement.style.fontFamily = font;
-        textElement.style.fontSize = fontSize;
-        textElement.style.animation = `${animation} ${speed}s ease infinite`; // Animacija u loop-u
+    // Kreiraj novi tekst
+    const textElement = document.createElement("div");
+    textElement.classList.add("text-display");
+    textElement.innerText = text;
+    textElement.style.color = color;
+    textElement.style.fontFamily = font;
+    textElement.style.fontSize = fontSize;
+    textElement.style.animation = `${animation} ${speed}s ease infinite`;
 
+    textContainer.appendChild(textElement);
+
+    // Pošalji podatke svim korisnicima
+    socket.emit("addText", {
+        text: text,
+        color: color,
+        font: font,
+        animation: animation,
+        speed: speed,
+        fontSize: fontSize
+    });
+});
+
+      
         // Dodavanje drag funkcionalnosti
         let isDragging = false;
         let offsetX, offsetY;
@@ -308,17 +328,16 @@ const socket = io();
         textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
       });
 
-   // Brisanje selektovanog teksta
+      // Brisanje selektovanog teksta
       clearBtn.addEventListener("click", function () {
         if (selectedTextElement) {
           selectedTextElement.remove();
           textElements = textElements.filter(element => element !== selectedTextElement); // Ukloni iz niza
           selectedTextElement = null;
-           updateTextList(); // Ažuriraj listu
+          updateTextList(); // Ažuriraj listu
           textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
         }
       });
-
 
       // Prikazivanje popup-a sa listom
       showListBtn.addEventListener("click", function () {
@@ -338,41 +357,19 @@ const socket = io();
         popupOverlay.style.display = "none";
       });
     });
-// Kada klijent primi aktuelne tekstove
-socket.on('current-texts', (texts) => {
-  texts.forEach((data) => {
-    createTextElement(data); // Funkcija koja pravi element za tekst
-  });
+socket.on("updateText", (data) => {
+    const textElement = document.createElement("div");
+    textElement.classList.add("text-display");
+    textElement.innerText = data.text;
+    textElement.style.color = data.color;
+    textElement.style.fontFamily = data.font;
+    textElement.style.fontSize = data.fontSize;
+    textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
+
+    textContainer.appendChild(textElement);
 });
 
-// Kada klijent primi novi tekst
-socket.on('new-text', (data) => {
-  createTextElement(data); // Funkcija koja pravi element za tekst
-});
-
-// Kada klijent primi zahtev za brisanje teksta
-socket.on('delete-text', (index) => {
-  const textElement = document.getElementById(`text-${index}`);
-  if (textElement) {
-    textElement.remove(); // Ukloni element sa ekrana
-  }
-});
-
-// Funkcija za kreiranje i dodavanje novog teksta na ekran
-function createTextElement(data) {
-  const textElement = document.createElement("div");
-  textElement.classList.add("text-display");
-  textElement.innerText = data.text;
-  textElement.style.color = data.color;
-  textElement.style.fontFamily = data.font;
-  textElement.style.fontSize = data.fontSize;
-  textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
-  textElement.id = `text-${data.index}`; // Dodaj id za lakše upravljanje kasnije
-
-  // Dodaj element na ekran
-  textContainer.appendChild(textElement);
-}
-
+    
   </script>
 </body>
 </html>
