@@ -260,6 +260,7 @@
     textElement.style.fontFamily = font;
     textElement.style.fontSize = fontSize;
     textElement.style.animation = `${animation} ${speed}s ease infinite`;
+     textElement.dataset.id = Math.random().toString(36).substr(2, 9); // Unikatan ID
 
     textContainer.appendChild(textElement);
 
@@ -291,12 +292,20 @@ socket.emit("textElement", { text, color, font, fontSize, animation, speed }); c
         });
 
         document.addEventListener("mousemove", function (e) {
-          if (!isDragging) return;
-          let x = e.clientX - offsetX;
-          let y = e.clientY - offsetY;
-          textElement.style.left = `${x}px`;
-          textElement.style.top = `${y}px`;
-        });
+  if (!isDragging) return;
+  let x = e.clientX - offsetX;
+  let y = e.clientY - offsetY;
+  textElement.style.left = `${x}px`;
+  textElement.style.top = `${y}px`;
+
+  // Emituj novu poziciju
+  socket.emit("updatePosition", { 
+    id: textElement.dataset.id, 
+    left: textElement.style.left, 
+    top: textElement.style.top 
+  });
+});
+
 
         document.addEventListener("mouseup", function () {
           isDragging = false;
@@ -372,6 +381,14 @@ socket.on("removeText", (elementId) => {
         elementToRemove.remove();
     }
 });
+     socket.on("updatePosition", (data) => {
+  const textElement = document.querySelector(`[data-id="${data.id}"]`);
+  if (textElement) {
+    textElement.style.left = data.left;
+    textElement.style.top = data.top;
+  }
+});
+
 
     
   </script>
