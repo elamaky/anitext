@@ -203,18 +203,7 @@
   <script>
   const socket = io();
 
-socket.on("initTexts", (texts) => {
-    texts.forEach(addTextToDOM);
-});
-
-// Kada se doda novi tekst
-socket.on("updateTexts", (texts) => {
-    document.getElementById("textContainer").innerHTML = ""; // Očisti ekran
-    texts.forEach(addTextToDOM);
-});
-
-    
-    document.addEventListener("DOMContentLoaded", function () {
+   document.addEventListener("DOMContentLoaded", function () {
       const textInput = document.getElementById("textInput");
       const textColorInput = document.getElementById("textColor");
       const fontSelect = document.getElementById("fontSelect");
@@ -274,18 +263,11 @@ socket.on("updateTexts", (texts) => {
 
     textContainer.appendChild(textElement);
 
-    // Pošalji podatke svim korisnicima
-    socket.emit("addText", {
-        text: text,
-        color: color,
-        font: font,
-        animation: animation,
-        speed: speed,
-        fontSize: fontSize
-    });
+socket.emit("textElement", { text, color, font, fontSize, animation, speed }); console.log("Text element emitted:", { text, color, font, fontSize, animation, speed });
 
-              // Dodavanje drag funkcionalnosti
-        let isDragging = false;
+
+     // Dodavanje drag funkcionalnosti   
+     let isDragging = false;
         let offsetX, offsetY;
 
         textElement.addEventListener("mousedown", function (e) {
@@ -336,6 +318,9 @@ socket.on("updateTexts", (texts) => {
           selectedTextElement = null;
           updateTextList(); // Ažuriraj listu
           textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
+
+           socket.emit("removeText", elementId);
+        console.log("Text element removed:", elementId);
         }
       });
 
@@ -367,6 +352,25 @@ socket.on("updateText", (data) => {
     textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
 
     textContainer.appendChild(textElement);
+});
+
+    socket.on("textElement", (data) => {
+    const textElement = document.createElement("div");
+    textElement.classList.add("text-display");
+    textElement.innerText = data.text;
+    textElement.style.color = data.color;
+    textElement.style.fontFamily = data.font;
+    textElement.style.fontSize = data.fontSize;
+    textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
+
+    textContainer.appendChild(textElement);
+});
+
+socket.on("removeText", (elementId) => {
+    const elementToRemove = document.querySelector(`[data-id="${elementId}"]`);
+    if (elementToRemove) {
+        elementToRemove.remove();
+    }
 });
 
     
