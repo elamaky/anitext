@@ -351,7 +351,9 @@ socket.emit("textElement", { text, color, font, fontSize, animation, speed }); c
         popupOverlay.style.display = "none";
       });
     });
-socket.on("updateText", (data) => {
+socket.on("textElement", (data) => {
+    console.log("Received text element on client:", data);  // Logovanje primljenih podataka
+
     const textElement = document.createElement("div");
     textElement.classList.add("text-display");
     textElement.innerText = data.text;
@@ -360,34 +362,31 @@ socket.on("updateText", (data) => {
     textElement.style.fontSize = data.fontSize;
     textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
 
-    textContainer.appendChild(textElement);
-});
-
-    socket.on("textElement", (data) => {
-    const textElement = document.createElement("div");
-    textElement.classList.add("text-display");
-    textElement.innerText = data.text;
-    textElement.style.color = data.color;
-    textElement.style.fontFamily = data.font;
-    textElement.style.fontSize = data.fontSize;
-    textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
+    // Dodajemo ID za selektovanje kasnije
+    textElement.setAttribute("data-id", data.id);
 
     textContainer.appendChild(textElement);
 });
 
 socket.on("removeText", (elementId) => {
+    console.log("Removing text with id on client:", elementId);  // Logovanje uklonjenog elementa
+
     const elementToRemove = document.querySelector(`[data-id="${elementId}"]`);
     if (elementToRemove) {
         elementToRemove.remove();
     }
 });
-     socket.on("updatePosition", (data) => {
-  const textElement = document.querySelector(`[data-id="${data.id}"]`);
-  if (textElement) {
-    textElement.style.left = data.left;
-    textElement.style.top = data.top;
-  }
+
+socket.on("updatePosition", (data) => {
+    console.log("Updating position on client for text id:", data.id);  // Logovanje pozicije na klijentu
+
+    const textElement = document.querySelector(`[data-id="${data.id}"]`);
+    if (textElement) {
+        textElement.style.left = data.left;
+        textElement.style.top = data.top;
+    }
 });
+
 
 
     
