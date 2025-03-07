@@ -1,47 +1,48 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const path = require("path");
+// Uvozimo potrebne module
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 
+// Kreiramo aplikaciju koristeći express
 const app = express();
+
+// Kreiramo server
 const server = http.createServer(app);
-const io = new Server(server);
 
-let texts = []; // Skladište za sve generisane tekstove
+// Inicijalizujemo Socket.io sa serverom
+const io = socketIo(server);
 
-// Služi statičke fajlove (HTML, CSS, JS)
-app.use(express.static(path.join(__dirname, "public")));
+// Podesavamo port na kojem će server slušati (ako port 3000 nije slobodan, koristiće se bilo koji drugi port)
+const PORT = process.env.PORT || 3000;
 
-io.on("connection", (socket) => {
-    console.log("Korisnik povezan:", socket.id);
+// Poslužitelj za statičke fajlove (ako koristiš HTML, CSS, JS u posebnoj fascikli)
+app.use(express.static('public'));
 
-    // Pošalji trenutne tekstove novom korisniku
-    socket.emit("updateTexts", texts);
+// Kada se neko poveže na server putem socket-a
+io.on('connection', (socket) => {
+    console.log('New client connected:', socket.id);
 
-    // Kad korisnik doda novi tekst
-    socket.on("addText", (data) => {
-        texts.push(data); // Sačuvaj tekst
-        io.emit("updateTexts", texts); // Pošalji svim korisnicima
+    // Kada klijent pošalje novi tekst
+    socket.on('textElement', (data) => {
+        console.log("Received text element:", data);
+        // Emitujemo sve povezane klijente sa novim tekstom
+        socket.broadcast.emit('textElement', data); // Emitujemo svim klijentima osim trenutnog
     });
 
-    // Kad korisnik pomeri tekst
-    socket.on("moveText", (data) => {
-        const index = texts.findIndex(t => t.id === data.id);
-        if (index !== -1) {
-            texts[index].position = data.position;
-            io.emit("updateTexts", texts);
-        }
+    // Kada klijent pošalje zahtev za brisanje teksta
+    socket.on('removeText', (elementId) => {
+        console.log("Removing text with id:", elementId);
+        // Emitujemo svim klijentima da uklone tekst
+        socket.broadcast.emit('removeText', elementId);
     });
 
-    // Kad korisnik obriše tekst
-    socket.on("removeText", (id) => {
-        texts = texts.filter(t => t.id !== id);
-        io.emit("updateTexts", texts);
-    });
-
-    socket.on("disconnect", () => {
-        console.log("Korisnik odjavljen:", socket.id);
+    // Kada klijent prekine vezu
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
     });
 });
 
-server.listen(3000, () => console.log("Server pokrenut na http://localhost:3000"));
+// Startujemo server
+server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
