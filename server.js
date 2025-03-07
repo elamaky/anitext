@@ -57,7 +57,8 @@ io.on('connection', (socket) => {
 
     // Kada klijent pošalje poziciju teksta
     socket.on('updatePosition', (data) => {
-        console.log("Updating position for text id:", data.id, "New position:", data);
+        // Logujemo samo poslednju poziciju
+        console.log("Updated position for text id:", data.id, "New position:", data);
 
         // Ažuriramo poziciju teksta na serveru
         const textElement = textElements.find(element => element.id === data.id);
