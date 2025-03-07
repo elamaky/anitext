@@ -1,44 +1,47 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io'); // Uvezi socket.io
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
-const server = http.createServer(app); // Koristi HTTP server za express
-const io = socketIo(server); // Poveži express sa socket.io
+const server = http.createServer(app);
+const io = new Server(server);
 
-let activeTexts = []; // Niz za čuvanje aktivnih tekstova
+let texts = []; // Skladište za sve generisane tekstove
 
-// Statički fajlovi (ako ih imate u 'public' folderu)
-app.use(express.static('public')); // Public folder za vaše statičke fajlove
+// Služi statičke fajlove (HTML, CSS, JS)
+app.use(express.static(path.join(__dirname, "public")));
 
-// Kada se nova veza uspostavi
-io.on('connection', (socket) => {
-  console.log('A user connected'); // Ispisuj u konzolu kad se neko poveže
+io.on("connection", (socket) => {
+    console.log("Korisnik povezan:", socket.id);
 
-  // Pošaljite samo aktuelne tekstove novom korisniku
-  socket.emit('current-texts', activeTexts);
+    // Pošalji trenutne tekstove novom korisniku
+    socket.emit("updateTexts", texts);
 
-  // Kada server primi poruku od klijenta (novi tekst)
-  socket.on('new-text', (data) => {
-    activeTexts.push(data); // Dodajte novi tekst u niz
-    io.emit('new-text', data); // Emitujte novi tekst svim povezanim klijentima
-  });
+    // Kad korisnik doda novi tekst
+    socket.on("addText", (data) => {
+        texts.push(data); // Sačuvaj tekst
+        io.emit("updateTexts", texts); // Pošalji svim korisnicima
+    });
 
-  // Kada korisnik pošalje zahtev za brisanje teksta
-  socket.on('delete-text', (index) => {
-    // Uklonite tekst iz niza
-    activeTexts.splice(index, 1); 
-    io.emit('delete-text', index); // Emitujte obaveštenje svim klijentima da obrišu tekst
-  });
+    // Kad korisnik pomeri tekst
+    socket.on("moveText", (data) => {
+        const index = texts.findIndex(t => t.id === data.id);
+        if (index !== -1) {
+            texts[index].position = data.position;
+            io.emit("updateTexts", texts);
+        }
+    });
 
-  // Kada korisnik odspoji
-  socket.on('disconnect', () => {
-    console.log('User disconnected');
-  });
+    // Kad korisnik obriše tekst
+    socket.on("removeText", (id) => {
+        texts = texts.filter(t => t.id !== id);
+        io.emit("updateTexts", texts);
+    });
+
+    socket.on("disconnect", () => {
+        console.log("Korisnik odjavljen:", socket.id);
+    });
 });
 
-// Server pokrećemo sa portom koji dodeljuje Render
-const PORT = process.env.PORT || 3000; // Ako nije dodeljen PORT, koristi 3000
-server.listen(PORT, () => {
-  console.log(`Server started on http://localhost:${PORT}`);
-});
+server.listen(3000, () => console.log("Server pokrenut na http://localhost:3000"));
