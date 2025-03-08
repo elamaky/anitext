@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Text Animation Generator</title>
-  <script src="/socket.io/socket.io.js"></script>
-
+ <script src="/socket.io/socket.io.js"></script>
   <style>
     body {
       background-color: #000;
@@ -61,10 +60,11 @@
       padding: 5px;
     }
 
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-30px); }
-    }
+  @keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-30px); }
+  60% { transform: translateY(-15px); }
+}
     @keyframes fadeIn {
       0% { opacity: 0; }
       100% { opacity: 1; }
@@ -154,6 +154,10 @@
   </style>
 </head>
 <body>
+<label for="passwordInput">Lozinka:</label>
+<input type="password" id="passwordInput" placeholder="nemogusvi">
+<button id="loginBtn">Prijavi se</button>
+
   <div class="command-table">
     <label>Tekst: <input type="text" id="textInput" value="Animirani tekst"></label>
     <label>Boja teksta: <input type="color" id="textColor" value="#ffffff"></label>
@@ -181,7 +185,7 @@
       </select>
     </label>
     <label>Brzina animacije:
-      <input type="range" id="speedRange" min="1" max="100" value="50">
+      <input type="range" id="speedRange" min="1" max="20" value="1">
     </label>
     <label>Veličina fonta:
       <input type="range" id="fontSize" min="10" max="100" value="50">
@@ -201,55 +205,60 @@
   </div>
 
   <script>
-  const socket = io();
+document.addEventListener("DOMContentLoaded", function () {
+  const socket = io(); // Poveži se na socket server
 
-   document.addEventListener("DOMContentLoaded", function () {
-      const textInput = document.getElementById("textInput");
-      const textColorInput = document.getElementById("textColor");
-      const fontSelect = document.getElementById("fontSelect");
-      const animationSelect = document.getElementById("animationSelect");
-      const speedRange = document.getElementById("speedRange");
-      const fontSizeRange = document.getElementById("fontSize");
-      const generateBtn = document.getElementById("generateBtn");
-      const clearBtn = document.getElementById("clearBtn");
-      const textContainer = document.getElementById("textContainer");
-      const textCounter = document.getElementById("textCounter");
-      const textList = document.getElementById("textList");
-      const showListBtn = document.getElementById("showListBtn");
-      const popup = document.getElementById("popup");
-      const popupOverlay = document.getElementById("popupOverlay");
-      const closePopupBtn = document.getElementById("closePopupBtn");
+ const passwordInput = document.getElementById("passwordInput");
+  const loginBtn = document.getElementById("loginBtn");
+  const textInput = document.getElementById("textInput");
+  const textColorInput = document.getElementById("textColor");
+  const fontSelect = document.getElementById("fontSelect");
+  const animationSelect = document.getElementById("animationSelect");
+  const speedRange = document.getElementById("speedRange");
+  const fontSizeRange = document.getElementById("fontSize");
+  const generateBtn = document.getElementById("generateBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const textContainer = document.getElementById("textContainer");
+  const textCounter = document.getElementById("textCounter");
+  const textList = document.getElementById("textList");
+  const showListBtn = document.getElementById("showListBtn");
+  const popup = document.getElementById("popup");
+  const popupOverlay = document.getElementById("popupOverlay");
+  const closePopupBtn = document.getElementById("closePopupBtn");
 
-      let textElements = []; // Svi tekstovi će biti pohranjeni u ovom nizu
-      let selectedTextElement = null; // Trenutno selektovan tekst
 
-      // Funkcija za ažuriranje liste teksta
-      function updateTextList() {
-        textList.innerHTML = ''; // Očisti listu
-        textElements.forEach((element, index) => {
-          const listItem = document.createElement('li');
-          listItem.innerText = `Text ${index + 1}`;
-          listItem.dataset.index = index;
+ let isAuthenticated = false;
+  let textElements = []; // Svi tekstovi će biti pohranjeni u ovom nizu
+  let selectedTextElement = null; // Trenutno selektovan tekst
 
-          // Dodaj event listener za selektovanje teksta
-          listItem.addEventListener('click', function () {
-            if (selectedTextElement) {
-              selectedTextElement.classList.remove("selected");
-            }
-            selectedTextElement = element;
-            element.classList.add("selected");
-          });
+  // Funkcija za ažuriranje liste teksta
+  function updateTextList() {
+    textList.innerHTML = ''; // Očisti listu
+    textElements.forEach((element, index) => {
+      const listItem = document.createElement('li');
+      listItem.innerText = `Text ${index + 1}`;
+      listItem.dataset.index = index;
 
-          textList.appendChild(listItem);
-        });
-      }
+      // Dodaj event listener za selektovanje teksta
+      listItem.addEventListener('click', function () {
+        if (selectedTextElement) {
+          selectedTextElement.classList.remove("selected");
+        }
+        selectedTextElement = element;
+        element.classList.add("selected");
+      });
 
-   generateBtn.addEventListener("click", function () {
+      textList.appendChild(listItem);
+    });
+  }
+
+  // Generiši novi tekst
+  generateBtn.addEventListener("click", function () {
     const text = textInput.value;
     const color = textColorInput.value;
     const font = fontSelect.value;
     const animation = animationSelect.value;
-    const speed = 100 - speedRange.value; // Brzina u opsegu od 1 do 100
+    const speed = 20 - speedRange.value; // Brzina u opsegu od 1 do 20 (niži broj = brža animacija)
     const fontSize = fontSizeRange.value + "px"; // Veličina fonta
 
     // Kreiraj novi tekst
@@ -259,101 +268,170 @@
     textElement.style.color = color;
     textElement.style.fontFamily = font;
     textElement.style.fontSize = fontSize;
-    textElement.style.animation = `${animation} ${speed}s ease infinite`;
-     textElement.dataset.id = Math.random().toString(36).substr(2, 9); // Unikatan ID
+    textElement.style.animation = `${animation} ${speed}s ease infinite`; // Animacija u loop-u
 
-    textContainer.appendChild(textElement);
+    // Emituj novi tekst svim drugim korisnicima
+    socket.emit('newText', {
+      text,
+      color,
+      font,
+      animation,
+      speed,
+      fontSize,
+      x: 0,
+      y: 0
+    });
 
-socket.emit("textElement", { text, color, font, fontSize, animation, speed }); console.log("Text element emitted:", { text, color, font, fontSize, animation, speed });
+    // Dodavanje drag funkcionalnosti
+    let isDragging = false;
+    let offsetX, offsetY;
 
-
-     // Dodavanje drag funkcionalnosti   
-     let isDragging = false;
-        let offsetX, offsetY;
-
-        textElement.addEventListener("mousedown", function (e) {
-          if (selectedTextElement === textElement) {
-            // Ako je tekst već selektovan, ukloni granice
-            textElement.classList.remove("selected");
-            selectedTextElement = null; // Ukloni selektovani tekst
-          } else {
-            // Ako nije selektovan, selektuj ga i dodaj granice
-            if (selectedTextElement) {
-              selectedTextElement.classList.remove("selected"); // Ukloni granice sa prethodno selektovanog
-            }
-            textElement.classList.add("selected");
-            selectedTextElement = textElement; // Postavi trenutni selektovani tekst
-          }
-
-          isDragging = true;
-          offsetX = e.clientX - textElement.getBoundingClientRect().left;
-          offsetY = e.clientY - textElement.getBoundingClientRect().top;
-          textElement.style.cursor = "grabbing";
-        });
-
-        document.addEventListener("mousemove", function (e) {
-  if (!isDragging) return;
-  let x = e.clientX - offsetX;
-  let y = e.clientY - offsetY;
-  textElement.style.left = `${x}px`;
-  textElement.style.top = `${y}px`;
-
-  // Emituj novu poziciju
-  socket.emit("updatePosition", { 
-    id: textElement.dataset.id, 
-    left: textElement.style.left, 
-    top: textElement.style.top 
-  });
-});
-
-
-        document.addEventListener("mouseup", function () {
-          isDragging = false;
-          textElement.style.cursor = "grab";
-        });
-
-        // Dodaj element na ekran
-        textContainer.appendChild(textElement);
-        textElements.push(textElement);
-        updateTextList(); // Ažuriraj listu
-        textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
-      });
-
-      // Brisanje selektovanog teksta
-      clearBtn.addEventListener("click", function () {
+    textElement.addEventListener("mousedown", function (e) {
+      if (selectedTextElement === textElement) {
+        // Ako je tekst već selektovan, ukloni granice
+        textElement.classList.remove("selected");
+        selectedTextElement = null; // Ukloni selektovani tekst
+      } else {
+        // Ako nije selektovan, selektuj ga i dodaj granice
         if (selectedTextElement) {
-          selectedTextElement.remove();
-          textElements = textElements.filter(element => element !== selectedTextElement); // Ukloni iz niza
-          selectedTextElement = null;
-          updateTextList(); // Ažuriraj listu
-          textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
-
-           socket.emit("removeText", elementId);
-        console.log("Text element removed:", elementId);
+          selectedTextElement.classList.remove("selected"); // Ukloni granice sa prethodno selektovanog
         }
-      });
+        textElement.classList.add("selected");
+        selectedTextElement = textElement; // Postavi trenutni selektovani tekst
+      }
 
-      // Prikazivanje popup-a sa listom
-      showListBtn.addEventListener("click", function () {
-        popup.style.display = "block";
-        popupOverlay.style.display = "block";
-      });
+      isDragging = true;
+      offsetX = e.clientX - textElement.getBoundingClientRect().left;
+      offsetY = e.clientY - textElement.getBoundingClientRect().top;
+      textElement.style.cursor = "grabbing";
+    });
 
-      // Zatvaranje popup-a
-      closePopupBtn.addEventListener("click", function () {
-        popup.style.display = "none";
-        popupOverlay.style.display = "none";
-      });
+    document.addEventListener("mousemove", function (e) {
+      if (!isDragging) return;
+      let x = e.clientX - offsetX;
+      let y = e.clientY - offsetY;
+      textElement.style.left = `${x}px`;
+      textElement.style.top = `${y}px`;
 
-      // Zatvori popup ako klikneš van njega
-      popupOverlay.addEventListener("click", function () {
-        popup.style.display = "none";
-        popupOverlay.style.display = "none";
+      // Emituj promenu pozicije svim drugim korisnicima
+      socket.emit('positionChange', {
+        index: textElements.indexOf(textElement),
+        x,
+        y
       });
     });
-socket.on("textElement", (data) => {
-    console.log("Received text element on client:", data);  // Logovanje primljenih podataka
 
+    document.addEventListener("mouseup", function () {
+      isDragging = false;
+      textElement.style.cursor = "grab";
+    });
+
+    // Dodaj element na ekran
+    textContainer.appendChild(textElement);
+    textElements.push(textElement);
+    updateTextList(); // Ažuriraj listu
+    textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
+  });
+
+  // Brisanje selektovanog teksta
+  clearBtn.addEventListener("click", function () {
+    if (selectedTextElement) {
+      const index = textElements.indexOf(selectedTextElement);
+      selectedTextElement.remove();
+      textElements = textElements.filter(element => element !== selectedTextElement); // Ukloni iz niza
+      selectedTextElement = null;
+      updateTextList(); // Ažuriraj listu
+      textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
+
+      // Emituj brisanje teksta svim drugim korisnicima
+      socket.emit('deleteText', {
+        index
+      });
+    }
+  });
+
+  // Prikazivanje popup-a sa listom
+  showListBtn.addEventListener("click", function () {
+    popup.style.display = "block";
+    popupOverlay.style.display = "block";
+  });
+
+  // Zatvaranje popup-a
+  closePopupBtn.addEventListener("click", function () {
+    popup.style.display = "none";
+    popupOverlay.style.display = "none";
+  });
+
+  // Zatvori popup ako klikneš van njega
+  popupOverlay.addEventListener("click", function () {
+    popup.style.display = "none";
+    popupOverlay.style.display = "none";
+  });
+
+  // Prijem trenutnog stanja od servera
+  socket.on('currentState', function (data) {
+    textElements = data;
+    textElements.forEach((elementData, index) => {
+      const textElement = document.createElement("div");
+      textElement.classList.add("text-display");
+      textElement.innerText = elementData.text;
+      textElement.style.color = elementData.color;
+      textElement.style.fontFamily = elementData.font;
+      textElement.style.fontSize = elementData.fontSize;
+      textElement.style.animation = `${elementData.animation} ${elementData.speed}s ease infinite`;
+      textElement.style.left = `${elementData.x}px`;
+      textElement.style.top = `${elementData.y}px`;
+
+      // Dodavanje drag funkcionalnosti
+      let isDragging = false;
+      let offsetX, offsetY;
+
+      textElement.addEventListener("mousedown", function (e) {
+        if (selectedTextElement === textElement) {
+          textElement.classList.remove("selected");
+          selectedTextElement = null;
+        } else {
+          if (selectedTextElement) {
+            selectedTextElement.classList.remove("selected");
+          }
+          textElement.classList.add("selected");
+          selectedTextElement = textElement;
+        }
+
+        isDragging = true;
+        offsetX = e.clientX - textElement.getBoundingClientRect().left;
+        offsetY = e.clientY - textElement.getBoundingClientRect().top;
+        textElement.style.cursor = "grabbing";
+      });
+
+      document.addEventListener("mousemove", function (e) {
+        if (!isDragging) return;
+        let x = e.clientX - offsetX;
+        let y = e.clientY - offsetY;
+        textElement.style.left = `${x}px`;
+        textElement.style.top = `${y}px`;
+
+        socket.emit('positionChange', {
+          index,
+          x,
+          y
+        });
+      });
+
+      document.addEventListener("mouseup", function () {
+        isDragging = false;
+        textElement.style.cursor = "grab";
+      });
+
+      textContainer.appendChild(textElement);
+      textElements[index] = textElement;
+    });
+    updateTextList();
+    textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
+  });
+
+  // Prijem događaja od drugih korisnika
+  socket.on('newText', function (data) {
     const textElement = document.createElement("div");
     textElement.classList.add("text-display");
     textElement.innerText = data.text;
@@ -361,35 +439,60 @@ socket.on("textElement", (data) => {
     textElement.style.fontFamily = data.font;
     textElement.style.fontSize = data.fontSize;
     textElement.style.animation = `${data.animation} ${data.speed}s ease infinite`;
-
-    // Dodajemo ID za selektovanje kasnije
-    textElement.setAttribute("data-id", data.id);
+    textElement.style.left = `${data.x}px`;
+    textElement.style.top = `${data.y}px`;
 
     textContainer.appendChild(textElement);
-});
+    textElements.push(textElement);
+    updateTextList();
+    textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
+  });
 
-socket.on("removeText", (elementId) => {
-    console.log("Removing text with id on client:", elementId);  // Logovanje uklonjenog elementa
-
-    const elementToRemove = document.querySelector(`[data-id="${elementId}"]`);
-    if (elementToRemove) {
-        elementToRemove.remove();
-    }
-});
-
-socket.on("updatePosition", (data) => {
-    console.log("Updating position on client for text id:", data.id);  // Logovanje pozicije na klijentu
-
-    const textElement = document.querySelector(`[data-id="${data.id}"]`);
+  socket.on('deleteText', function (data) {
+    const textElement = textElements[data.index];
     if (textElement) {
-        textElement.style.left = data.left;
-        textElement.style.top = data.top;
+      textElement.remove();
+      textElements.splice(data.index, 1);
+      updateTextList();
+      textCounter.innerText = `Trenutni broj tekstova: ${textElements.length}`;
     }
+  });
+
+  socket.on('positionChange', function (data) {
+    const textElement = textElements[data.index];
+    if (textElement) {
+      textElement.style.left = `${data.x}px`;
+      textElement.style.top = `${data.y}px`;
+    }
+  });
 });
+const validPassword = "mirjana";
 
+  // Funkcija za autentifikaciju
+  loginBtn.addEventListener("click", function () {
+    const enteredPassword = passwordInput.value;
+    if (enteredPassword === validPassword) {
+      isAuthenticated = true;
+      alert("Uspešno ste prijavljeni!");
+      // Omogućite dugme za generisanje teksta
+      generateBtn.disabled = false;
+    } else {
+      alert("Pogrešna lozinka. Pokušajte ponovo.");
+    }
+  });
 
+  // Onemogućite dugme za generisanje teksta dok korisnik nije autentifikovan
+  generateBtn.disabled = true;
 
-    
+  // Ostatak vašeg koda za generisanje teksta
+  generateBtn.addEventListener("click", function () {
+    if (isAuthenticated) {
+      // Vaš postojeći kod za generisanje teksta
+    } else {
+      alert("Morate biti prijavljeni da biste generisali tekst.");
+    }
+  });
+
   </script>
 </body>
 </html>
