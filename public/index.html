@@ -44,21 +44,33 @@
       background-color: #444;
     }
 
-    .text-display {
-      position: absolute;
-      font-size: 50px;
-      font-weight: bold;
-      font-style: italic;
-      color: #fff;
-      white-space: nowrap;
-      cursor: grab;
-      user-select: none;
-    }
+ .text-display {
+  background: linear-gradient(90deg, #ff0000, #ffcc00, #00f0ff, #00ff00, #ff00ff);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: neonGradient 3s linear infinite;
+  
+  position: absolute;
+  font-size: 50px;
+  font-weight: bold;
+  font-style: italic;
+  top: 0;
+  white-space: nowrap;
+  cursor: grab;
+  z-index: 999999;
+  user-select: none;
+}
 
-    .selected {
-      border: 2px solid #fff; /* Neon bela linija oko selektovanog teksta */
-      padding: 5px;
-    }
+@keyframes neonGradient {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+.selected {
+  border: 2px solid #fff;
+  padding: 5px;
+}
 
   @keyframes bounce {
   0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
@@ -203,6 +215,9 @@
     <ul id="textList" class="text-list"></ul>
     <button id="closePopupBtn">Zatvori</button>
   </div>
+  <canvas id="myCanvas" width="500" height="200" style="display:none;"></canvas>
+<button id="saveImageBtn">Spasi sliku</button>
+
 
   <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -492,6 +507,45 @@ const validPassword = "mirjana";
       alert("Morate biti prijavljeni da biste generisali tekst.");
     }
   });
+    // Funkcija za generisanje slike
+function saveTextAsImage() {
+  const canvas = document.getElementById('myCanvas');
+  const ctx = canvas.getContext('2d');
+
+  // Preporučene vrednosti za boje, font, veličinu
+  const text = 'Ovo je generisani tekst';
+  const fontSize = 50;
+  const fontColor = '#ffffff';
+  const fontFamily = 'Arial';
+
+  // Postavi boje i font
+  ctx.fillStyle = fontColor;
+  ctx.font = `${fontSize}px ${fontFamily}`;
+
+  // Pozicioniraj tekst
+  const x = 50; // horizontalna pozicija
+  const y = 100; // vertikalna pozicija
+
+  // Nacrtaj tekst na canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height); // Očisti canvas pre nego što crtaš
+  ctx.fillText(text, x, y);
+
+  // Sačuvaj canvas kao sliku
+  const dataURL = canvas.toDataURL('image/png'); // Generiše base64 URL slike
+  downloadImage(dataURL);
+}
+
+// Funkcija za preuzimanje slike
+function downloadImage(dataURL) {
+  const link = document.createElement('a');
+  link.href = dataURL;
+  link.download = 'generated_text_image.png';
+  link.click();
+}
+
+// Dugme za sačuvavanje slike
+document.getElementById('saveImageBtn').addEventListener('click', saveTextAsImage);
+
 
   </script>
 </body>
